@@ -16,7 +16,7 @@ import Colors from '../../theme/colors';
 
 export default function AddStudentModal({ show, onClose, onSave, editStudent }) {
   const [formData, setFormData] = useState({
-    usn: '', name: '', email: '', phone: '', semester: '', section: '', status: 'Active',
+    usn: '', name: '', email: '', phone: '', semester: '', section: '', status: 'Active', counsellor: '',
   });
 
   useEffect(() => {
@@ -30,9 +30,10 @@ export default function AddStudentModal({ show, onClose, onSave, editStudent }) 
         semester: editStudent.semester?.toString() || '',
         section: editStudent.section || '',
         status: editStudent.status || 'Active',
+        counsellor: editStudent.counsellor || '',
       });
     } else {
-      setFormData({ usn: '', name: '', email: '', phone: '', semester: '', section: '', status: 'Active' });
+      setFormData({ usn: '', name: '', email: '', phone: '', semester: '', section: '', status: 'Active', counsellor: '' });
     }
   }, [editStudent, show]);
 
@@ -59,12 +60,13 @@ export default function AddStudentModal({ show, onClose, onSave, editStudent }) 
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {[
-                { key: 'usn', placeholder: 'USN *' },
-                { key: 'name', placeholder: 'Student Name *' },
-                { key: 'email', placeholder: 'Email', keyboardType: 'email-address' },
-                { key: 'phone', placeholder: 'Phone', keyboardType: 'phone-pad' },
-                { key: 'semester', placeholder: 'Semester *', keyboardType: 'numeric' },
-                { key: 'section', placeholder: 'Section *' },
+                { key: 'usn',        placeholder: 'USN *' },
+                { key: 'name',       placeholder: 'Student Name *' },
+                { key: 'email',      placeholder: 'Email', keyboardType: 'email-address' },
+                { key: 'phone',      placeholder: 'Phone', keyboardType: 'phone-pad' },
+                { key: 'semester',   placeholder: 'Semester *', keyboardType: 'numeric' },
+                { key: 'section',    placeholder: 'Section *' },
+                { key: 'counsellor', placeholder: 'Counsellor / Mentor Name' },
               ].map((field) => (
                 <TextInput
                   key={field.key}

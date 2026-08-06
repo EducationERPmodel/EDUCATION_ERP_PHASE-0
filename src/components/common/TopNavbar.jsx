@@ -1,39 +1,90 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter, usePathname } from 'expo-router';
+import api from '../../services/api';
 import Colors from '../../theme/colors';
 
-export default function TopNavbar({ onMenuPress, title = 'Faculty Dashboard' }) {
-  const insets = useSafeAreaInsets();
-  // On Android, status bar height comes from insets.top.
-  // Fall back to sensible default if provider not ready yet.
-  const topPad = insets.top > 0 ? insets.top : (Platform.OS === 'android' ? 28 : 20);
+const TITLES = {
+  '/dashboard':   'Dashboard',
+  '/students':    'Students',
+  '/attendance':  'Attendance',
+  '/assignments': 'Assignments',
+  '/iamarks':     'IA Marks',
+  '/aichecker':   'AI Checker',
+  '/profile':     'My Profile',
+  '/timetable':   'Timetable',
+};
+
+export default function TopNavbar({ onMenuPress }) {
+  const insets   = useSafeAreaInsets();
+  const router   = useRouter();
+  const pathname = usePathname();
+  const topPad   = insets.top > 0 ? insets.top : (Platform.OS === 'android' ? 28 : 20);
+  const title    = TITLES[pathname] || 'Faculty Dashboard';
+
+  // Notification badge — open assignments count
+  const [badge, setBadge] = useState(0);
+  useEffect(() => {
+    api.get('/dashboard/stats')
+      .then(res => setBadge(res.data.openAssignments || 0))
+      .catch(() => {});
+  }, [pathname]);
 
   return (
     <View style={[styles.navbar, { paddingTop: topPad }]}>
+      {/* Hamburger */}
       <TouchableOpacity
         onPress={onMenuPress}
         style={styles.menuBtn}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="menu" size={26} color={Colors.textPrimary} />
+        <Ionicons name="menu-outline" size={26} color={Colors.textPrimary} />
       </TouchableOpacity>
 
-      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      {/* Title area */}
+      <View style={styles.titleArea}>
+        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+        {pathname === '/dashboard' && (
+          <Text style={styles.greeting}>Good {greeting()}, Lokesh</Text>
+        )}
+      </View>
 
+      {/* Right actions */}
       <View style={styles.right}>
-        <Ionicons
-          name="notifications-outline"
-          size={22}
-          color={Colors.textPrimary}
-          style={styles.bellIcon}
-        />
-        <Ionicons name="person-circle-outline" size={28} color={Colors.textPrimary} />
-        <Text style={styles.facultyLabel}>Faculty</Text>
+        {/* Notification bell with badge */}
+        <TouchableOpacity
+          style={styles.bellWrap}
+          onPress={() => router.push('/assignments')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="notifications-outline" size={22} color={Colors.textPrimary} />
+          {badge > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Avatar → Profile */}
+        <TouchableOpacity
+          style={styles.avatar}
+          onPress={() => router.push('/profile')}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.avatarText}>L</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
+}
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'morning';
+  if (h < 17) return 'afternoon';
+  return 'evening';
 }
 
 const styles = StyleSheet.create({
@@ -42,37 +93,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    elevation: 4,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowRadius: 4,
     zIndex: 10,
   },
-  menuBtn: {
-    marginRight: 12,
-    padding: 4,
-  },
+  menuBtn:   { marginRight: 12, padding: 4 },
+  titleArea: { flex: 1 },
   title: {
-    flex: 1,
     fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
+    lineHeight: 22,
+  },
+  greeting: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 1,
   },
   right: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
-  bellIcon: {
-    marginRight: 12,
+  bellWrap: { padding: 4, position: 'relative' },
+  badge: {
+    position: 'absolute',
+    top: 0, right: 0,
+    minWidth: 16, height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
   },
-  facultyLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginLeft: 6,
+  badgeText: { fontSize: 9, color: Colors.white, fontWeight: '800' },
+  avatar: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: Colors.primaryLight,
   },
+  avatarText: { color: Colors.white, fontWeight: '900', fontSize: 14 },
 });

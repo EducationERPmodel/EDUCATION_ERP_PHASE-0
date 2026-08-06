@@ -21,9 +21,11 @@ export default function SimilarityResult({ score }) {
       </View>
       {/* Progress bar */}
       <View style={styles.barBg}>
-        <View style={[styles.barFill, { width: `${score}%`, backgroundColor: level.barColor }]}>
-          <Text style={styles.barText}>{score}%</Text>
-        </View>
+        <View style={[styles.barFill, { width: `${Math.max(score, 8)}%`, backgroundColor: level.barColor }]} />
+      </View>
+      <View style={styles.barLabelRow}>
+        <Text style={[styles.barLabel, { color: level.barColor }]}>{score}% similarity</Text>
+        <Text style={styles.barSub}>out of 100%</Text>
       </View>
     </View>
   );
@@ -38,7 +40,9 @@ const styles = StyleSheet.create({
   alert: { borderRadius: 10, padding: 14, marginBottom: 14 },
   alertLabel: { fontSize: 15, fontWeight: '700' },
   alertScore: { fontSize: 13, marginTop: 4 },
-  barBg: { height: 28, backgroundColor: Colors.border, borderRadius: 14, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 14, justifyContent: 'center', alignItems: 'center', minWidth: 36 },
-  barText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
+  barBg:      { height: 12, backgroundColor: Colors.border, borderRadius: 6, overflow: 'hidden', marginBottom: 6 },
+  barFill:    { height: '100%', borderRadius: 6 },
+  barLabelRow:{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  barLabel:   { fontSize: 13, fontWeight: '700' },
+  barSub:     { fontSize: 11, color: Colors.textMuted },
 });

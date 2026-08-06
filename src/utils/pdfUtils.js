@@ -1,34 +1,40 @@
 /**
- * React Native replacement for the web pdfjs-dist utility.
+ * extractTextFromFile
  *
- * SDK 54 note: expo-file-system v19 moved the legacy API to expo-file-system/legacy.
- * The new default export is an object-oriented API. We use the legacy API here
- * because readAsStringAsync is the simplest cross-platform text reader.
+ * Strategy:
+ *  - Upload the file to the backend POST /aichecker/extract
+ *  - Backend uses pdf-parse (for PDFs) or buffer.toString (for TXT)
+ *  - Returns extracted plain text
+ *
+ * This approach works for BOTH .txt and .pdf on Android/iOS in Expo Go
+ * without any native PDF module.
  *
  * File object shape from expo-document-picker v14:
- *   { uri, name, mimeType, size, lastModified }
+ *   { uri, name, mimeType, size }
  */
-import * as FileSystem from 'expo-file-system/legacy';
+import api from '../services/api';
 
 export async function extractTextFromFile(file) {
   if (!file) return '';
 
-  const isPdf =
-    file.mimeType === 'application/pdf' ||
-    (file.name && file.name.toLowerCase().endsWith('.pdf'));
-
-  if (isPdf) {
-    // PDF binary parsing requires a native module not available in Expo Go.
-    return '__PDF_UNSUPPORTED__';
-  }
-
   try {
-    const content = await FileSystem.readAsStringAsync(file.uri, {
-      encoding: FileSystem.EncodingType.UTF8,
+    // Build multipart/form-data payload
+    const formData = new FormData();
+    formData.append('file', {
+      uri:  file.uri,
+      name: file.name,
+      type: file.mimeType || (file.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
     });
-    return content;
+
+    const response = await api.post('/aichecker/extract', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+    });
+
+    return response.data.text || '';
   } catch (err) {
-    console.error('Error reading text file:', err);
-    return '';
+    console.error('extractTextFromFile error:', err.response?.data || err.message);
+    const msg = err.response?.data?.message || err.message;
+    throw new Error(msg);
   }
 }

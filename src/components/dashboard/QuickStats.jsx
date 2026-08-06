@@ -1,20 +1,60 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import api from '../../services/api';
 import Colors from '../../theme/colors';
 
-const stats = [
-  { title: 'Students', value: '520', icon: 'school-outline', color: Colors.primary },
-  { title: 'Attendance', value: '96%', icon: 'checkbox-outline', color: Colors.success },
-  { title: 'Assignments', value: '18', icon: 'book-outline', color: Colors.orange },
-  { title: 'IA Average', value: '82%', icon: 'bar-chart-outline', color: Colors.purple },
-];
+export default function QuickStats({ refreshKey }) {
+  const [stats, setStats] = useState(null);
+  const router = useRouter();
 
-export default function QuickStats() {
+  useEffect(() => {
+    api.get('/dashboard/stats')
+      .then(res => setStats(res.data))
+      .catch(() => setStats(null));
+  }, [refreshKey]);
+
+  const cards = [
+    {
+      title: 'Students',
+      value: stats ? String(stats.totalStudents) : '—',
+      icon: 'school-outline',
+      color: Colors.primary,
+      route: '/students',
+    },
+    {
+      title: 'Attendance',
+      value: stats ? `${stats.attendancePercent}%` : '—',
+      icon: 'checkbox-outline',
+      color: Colors.success,
+      route: '/attendance',
+    },
+    {
+      title: 'Assignments',
+      value: stats ? String(stats.totalAssignments) : '—',
+      icon: 'book-outline',
+      color: Colors.orange,
+      route: '/assignments',
+    },
+    {
+      title: 'IA Average',
+      value: stats ? `${stats.iaAverage}%` : '—',
+      icon: 'bar-chart-outline',
+      color: Colors.purple,
+      route: '/iamarks',
+    },
+  ];
+
   return (
     <View style={styles.grid}>
-      {stats.map((item, idx) => (
-        <View key={idx} style={[styles.card, { borderLeftColor: item.color }]}>
+      {cards.map((item, idx) => (
+        <TouchableOpacity
+          key={idx}
+          style={[styles.card, { borderLeftColor: item.color }]}
+          onPress={() => router.push(item.route)}
+          activeOpacity={0.75}
+        >
           <View style={[styles.iconBg, { backgroundColor: item.color + '22' }]}>
             <Ionicons name={item.icon} size={26} color={item.color} />
           </View>
@@ -22,7 +62,8 @@ export default function QuickStats() {
             <Text style={styles.statTitle}>{item.title}</Text>
             <Text style={[styles.statValue, { color: item.color }]}>{item.value}</Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={14} color={item.color + '88'} />
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -52,14 +93,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   iconBg: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center', marginRight: 8,
   },
   textBlock: { flex: 1 },
-  statTitle: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
-  statValue: { fontSize: 22, fontWeight: '800', marginTop: 2 },
+  statTitle: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
+  statValue: { fontSize: 20, fontWeight: '800', marginTop: 2 },
 });

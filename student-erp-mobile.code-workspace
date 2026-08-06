@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "Student ERP Mobile",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "terminal.integrated.cwd": "${workspaceFolder:Student ERP Mobile}",
+    "terminal.integrated.defaultProfile.windows": "PowerShell"
+  }
+}

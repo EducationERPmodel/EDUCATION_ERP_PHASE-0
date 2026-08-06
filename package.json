@@ -1,11 +1,18 @@
 {
   "name": "student-erp-mobile",
   "version": "1.0.0",
+  "description": "Faculty Student ERP — React Native Expo App for SVCE Bengaluru",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "node node_modules/@expo/cli/build/bin/cli start --clear",
-    "android": "node node_modules/@expo/cli/build/bin/cli start --android --clear",
-    "ios": "node node_modules/@expo/cli/build/bin/cli start --ios --clear"
+    "start":         "node node_modules/@expo/cli/build/bin/cli start --clear --host lan",
+    "start:tunnel":  "node node_modules/@expo/cli/build/bin/cli start --clear --tunnel",
+    "android":       "node node_modules/@expo/cli/build/bin/cli start --android --clear",
+    "ios":           "node node_modules/@expo/cli/build/bin/cli start --ios --clear",
+    "backend":       "node backend/server.js",
+    "backend:dev":   "cd backend && npx nodemon server.js",
+    "db:migrate":    "node database/migrations/migrate.js",
+    "db:seed":       "node database/seed/seed.js",
+    "db:schema":     "psql -U postgres -d student_erp -f database/schema.sql"
   },
   "dependencies": {
     "expo": "54.0.36",

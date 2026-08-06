@@ -21,6 +21,7 @@ const menuItems = [
   { title: 'Attendance',  path: '/attendance',  icon: 'checkbox-outline',      activeIcon: 'checkbox' },
   { title: 'Assignments', path: '/assignments', icon: 'book-outline',          activeIcon: 'book' },
   { title: 'IA Marks',    path: '/iamarks',     icon: 'bar-chart-outline',     activeIcon: 'bar-chart' },
+  { title: 'Timetable',   path: '/timetable',   icon: 'calendar-outline',      activeIcon: 'calendar' },
   { title: 'AI Checker',  path: '/aichecker',   icon: 'hardware-chip-outline', activeIcon: 'hardware-chip' },
   { title: 'Profile',     path: '/profile',     icon: 'person-outline',        activeIcon: 'person' },
 ];
@@ -65,7 +66,11 @@ export default function Sidebar({ visible, onClose }) {
       {/* Drawer */}
       <View style={[styles.drawer, { paddingTop: insets.top > 0 ? insets.top : 44 }]}>
         <View style={styles.header}>
-          <Text style={styles.logo}>🎓 Student ERP</Text>
+          <View>
+            <Text style={styles.logo}>🎓 Student ERP</Text>
+            <Text style={styles.facultyName}>Prof. Lokesh</Text>
+            <Text style={styles.facultyRole}>Faculty — CSE Dept</Text>
+          </View>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="close" size={24} color={Colors.white} />
           </TouchableOpacity>
@@ -122,7 +127,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
@@ -132,6 +137,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: Colors.white,
+  },
+  facultyName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.white,
+    marginTop: 4,
+  },
+  facultyRole: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 2,
   },
   menu: {
     flex: 1,
