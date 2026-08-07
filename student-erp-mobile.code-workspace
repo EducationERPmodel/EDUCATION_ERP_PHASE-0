@@ -1,12 +1,46 @@
 {
   "folders": [
     {
-      "name": "Student ERP Mobile",
-      "path": "."
+      "name": "Frontend (Expo / React Native)",
+      "path": "frontend"
+    },
+    {
+      "name": "Backend (Node / Express)",
+      "path": "backend"
+    },
+    {
+      "name": "Database",
+      "path": "database"
+    },
+    {
+      "name": "Docs",
+      "path": "docs"
     }
   ],
   "settings": {
-    "terminal.integrated.cwd": "${workspaceFolder:Student ERP Mobile}",
+    "terminal.integrated.cwd": "${workspaceFolder:Frontend (Expo / React Native)}",
     "terminal.integrated.defaultProfile.windows": "PowerShell"
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Start Expo (Frontend)",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:Frontend (Expo / React Native)}",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "start"],
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "Start Backend",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:Backend (Node / Express)}",
+        "program": "${workspaceFolder:Backend (Node / Express)}/server.js",
+        "envFile": "${workspaceFolder:Backend (Node / Express)}/.env"
+      }
+    ]
   }
 }

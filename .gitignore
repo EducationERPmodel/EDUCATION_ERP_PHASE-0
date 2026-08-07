@@ -1,39 +1,41 @@
-# Dependencies
+# ── Dependencies ──────────────────────────────────────────────────
 node_modules/
+frontend/node_modules/
 backend/node_modules/
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+# ── Expo ──────────────────────────────────────────────────────────
+frontend/.expo/
+frontend/dist/
+frontend/web-build/
+frontend/expo-env.d.ts
 
-# Native builds
-android/
-ios/
+# ── Native builds ─────────────────────────────────────────────────
+frontend/android/
+frontend/ios/
 
-# Environment
+# ── Environment variables ─────────────────────────────────────────
 .env
 .env.local
 .env.*.local
 !.env.example
+backend/.env
 
-# Logs
+# ── Logs ──────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# OS files
+# ── OS files ──────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# IDE
+# ── IDE ───────────────────────────────────────────────────────────
 .vscode/settings.json
 *.swp
 *.swo
 
-# Build output / test artifacts
+# ── Build / temp artifacts ────────────────────────────────────────
 .restore-check/
 .final-build/
 .verify/
@@ -41,8 +43,5 @@ Thumbs.db
 .polish-check/
 .ach-check/
 
-# Database backups
+# ── Database ──────────────────────────────────────────────────────
 database/backups/
-
-# Package locks (keep only one)
-# package-lock.json  ← keep this

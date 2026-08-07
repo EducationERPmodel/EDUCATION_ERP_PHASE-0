@@ -15,17 +15,15 @@ CREATE DATABASE student_erp;
 ALTER USER postgres PASSWORD 'student@erp';
 ```
 
-Then run the schema:
+Apply schema (fresh install):
 ```bash
 psql -U postgres -d student_erp -f database/schema.sql
 ```
 
-Or use the migration script:
+Or run migration + seed (from project root):
 ```bash
-cd backend
-npm install
-node scripts/migrate.js   # creates all tables
-node scripts/seed.js      # inserts 10 sample students
+node backend/scripts/migrate.js   # creates/updates all tables
+node backend/scripts/seed.js      # inserts 10 sample students + data
 ```
 
 ---
@@ -41,23 +39,38 @@ node server.js
 
 ---
 
-## 3. Mobile App (Expo Go)
+## 3. Frontend / Mobile App (Expo Go)
 
 ```bash
 # Step 1: Find your PC's LAN IP
 ipconfig   # look for Wi-Fi IPv4 Address
 
-# Step 2: Update IP in src/services/api.js
+# Step 2: Update IP in frontend/src/services/api.js
 # Change: baseURL: 'http://YOUR_PC_IP:5001'
 
 # Step 3: Install and start
+cd frontend
 npm install
 node node_modules/@expo/cli/build/bin/cli start --clear --host lan
 ```
 
-Scan QR code with Expo Go. Phone must be on same Wi-Fi as PC.
+Scan QR code with Expo Go. Phone and PC must be on the same Wi-Fi.
 
 **Login:** `lokesh@erp.com` / `12345`
+
+---
+
+## Available npm scripts (run from `frontend/`)
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `npm start` | Expo LAN mode | Start Expo dev server |
+| `npm run start:tunnel` | Expo tunnel | Start with tunnel (different network) |
+| `npm run backend` | node ../backend/server.js | Start backend |
+| `npm run db:migrate` | node ../backend/scripts/migrate.js | Run migrations |
+| `npm run db:seed` | node ../backend/scripts/seed.js | Seed sample data |
+| `npm run db:check` | node ../backend/scripts/check_schema.js | Check schema |
+| `npm run db:schema` | psql ... | Apply full schema.sql |
 
 ---
 
@@ -65,28 +78,32 @@ Scan QR code with Expo Go. Phone must be on same Wi-Fi as PC.
 
 ```
 student-erp-mobile/
-├── app/                    ← Expo Router screens (MUST stay at root)
-│   ├── (app)/              ← Authenticated screens
-│   ├── index.jsx           ← Home/Landing
-│   ├── login.jsx           ← Login screen
-│   └── _layout.jsx         ← Root layout
-├── src/                    ← React Native source
-│   ├── components/         ← UI components
-│   ├── services/api.js     ← Axios instance (update IP here)
-│   ├── data/               ← Offline fallback data
-│   ├── theme/colors.js     ← Design system colours
-│   └── utils/              ← Utilities
-├── assets/                 ← Icons and splash images
-├── backend/                ← Node.js + Express API
-│   ├── controllers/        ← Business logic
-│   ├── routes/             ← API routes
-│   ├── config/db.js        ← PostgreSQL connection
-│   └── server.js           ← Entry point
+├── frontend/       ← Expo React Native app (run npm commands here)
+├── backend/        ← Node.js Express API (port 5001)
+│   └── scripts/    ← migrate.js, seed.js, check_schema.js
 ├── database/
-│   ├── schema.sql          ← Full DB schema
-│   ├── migrations/         ← Migration scripts
-│   └── seed/               ← Sample data
-├── docs/                   ← Documentation
-├── app.json                ← Expo config (SDK 54)
-└── package.json
+│   └── schema.sql  ← Full DB schema (single source of truth)
+└── docs/
+```
+
+---
+
+## Environment Variables
+
+`backend/.env`:
+```
+DB_USER=postgres
+DB_PASSWORD=student@erp
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=student_erp
+PORT=5001
+```
+
+`frontend/src/services/api.js` — update `baseURL` to your LAN IP:
+```js
+const api = axios.create({
+  baseURL: 'http://192.168.1.X:5001',
+  timeout: 15000,
+});
 ```
