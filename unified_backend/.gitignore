@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Uploaded files
+uploads/documents/*
+uploads/exports/*
+uploads/photos/*
+
+# Keep empty upload directories
+!uploads/documents/.gitkeep
+!uploads/exports/.gitkeep
+!uploads/photos/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
