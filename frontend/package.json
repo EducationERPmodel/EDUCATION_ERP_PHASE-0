@@ -4,16 +4,16 @@
   "description": "Faculty Student ERP — React Native Expo App for SVCE Bengaluru",
   "main": "expo-router/entry",
   "scripts": {
-    "start":         "node node_modules/@expo/cli/build/bin/cli start --clear --host lan",
-    "start:tunnel":  "node node_modules/@expo/cli/build/bin/cli start --clear --tunnel",
-    "android":       "node node_modules/@expo/cli/build/bin/cli start --android --clear",
-    "ios":           "node node_modules/@expo/cli/build/bin/cli start --ios --clear",
-    "backend":       "node ../backend/server.js",
-    "backend:dev":   "cd ../backend && npx nodemon server.js",
-    "db:migrate":    "node ../backend/scripts/migrate.js",
-    "db:seed":       "node ../backend/scripts/seed.js",
-    "db:check":      "node ../backend/scripts/check_schema.js",
-    "db:schema":     "psql -U postgres -d student_erp -f ../database/schema.sql"
+    "start": "node node_modules/@expo/cli/build/bin/cli start --clear --host lan",
+    "start:tunnel": "node node_modules/@expo/cli/build/bin/cli start --clear --tunnel",
+    "android": "node node_modules/@expo/cli/build/bin/cli start --android --clear",
+    "ios": "node node_modules/@expo/cli/build/bin/cli start --ios --clear",
+    "backend": "node ../backend/server.js",
+    "backend:dev": "cd ../backend && npx nodemon server.js",
+    "db:migrate": "node ../backend/scripts/migrate.js",
+    "db:seed": "node ../backend/scripts/seed.js",
+    "db:check": "node ../backend/scripts/check_schema.js",
+    "db:schema": "psql -U postgres -d student_erp -f ../database/schema.sql"
   },
   "dependencies": {
     "@expo/vector-icons": "15.1.1",
@@ -39,7 +39,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "babel-preset-expo": "^54.0.12"
+    "@types/react": "^19.2.18",
+    "@types/react-native": "^0.73.0",
+    "@types/string-similarity": "^4.0.2",
+    "babel-preset-expo": "^54.0.12",
+    "typescript": "~5.8.3"
   },
   "private": true
 }
