@@ -1,0 +1,90 @@
+/**
+ * Cultural Activity Service
+ * Unified schema: activities(activity_id, student_id, faculty_id,
+ *   activity_type='Cultural', title, description JSON, academic_year, status)
+ */
+
+const culturalActivityRepo = require('../repositories/culturalActivity.repository');
+
+const parseQuery = (q) => ({
+  page:      Math.max(1, parseInt(q.page)  || 1),
+  limit:     Math.min(100, parseInt(q.limit) || 10),
+  search:    q.search?.trim() || null,
+  sortBy:    q.sortBy    || 'created_at',
+  sortOrder: q.sortOrder || 'desc',
+});
+
+const getList = async (departmentCode, queryParams) => {
+  const params = parseQuery(queryParams);
+  const { items, total } = await culturalActivityRepo.findAll(departmentCode, params);
+  return {
+    items,
+    pagination: {
+      total,
+      page:       params.page,
+      limit:      params.limit,
+      totalPages: Math.ceil(total / params.limit),
+      hasNext:    params.page * params.limit < total,
+      hasPrev:    params.page > 1,
+    },
+  };
+};
+
+const getById = async (id, departmentCode) => {
+  const record = await culturalActivityRepo.findById(id);
+  if (!record) throw { statusCode: 404, message: 'Cultural activity not found.' };
+  if (departmentCode && record.department_code !== departmentCode)
+    throw { statusCode: 403, message: 'Access denied.' };
+  return record;
+};
+
+const create = async (data, departmentCode) => {
+  if (!data.student_id)           throw { statusCode: 400, message: 'student_id is required.' };
+  if (!data.culturalActivityName) throw { statusCode: 400, message: 'culturalActivityName is required.' };
+
+  return culturalActivityRepo.create({
+    studentId:   data.student_id,
+    facultyId:   data.faculty_id || null,
+    title:       data.culturalActivityName.trim(),
+    description: JSON.stringify({
+      eventName:     data.eventName     || null,
+      positionPrize: data.positionPrize || null,
+      section:       data.section       || null,
+      semester:      data.semester      || null,
+    }),
+    academicYear: data.academicYear || null,
+    status:       'Completed',
+  });
+};
+
+const update = async (id, data, departmentCode) => {
+  const existing = await culturalActivityRepo.findById(id);
+  if (!existing) throw { statusCode: 404, message: 'Cultural activity not found.' };
+  if (departmentCode && existing.department_code !== departmentCode)
+    throw { statusCode: 403, message: 'Access denied.' };
+
+  const updateData = {};
+  if (data.culturalActivityName) updateData.title       = data.culturalActivityName.trim();
+  if (data.academicYear)         updateData.academicYear = data.academicYear;
+
+  let desc = {};
+  try { desc = JSON.parse(existing.description || '{}'); } catch {}
+  if (data.eventName     !== undefined) desc.eventName     = data.eventName;
+  if (data.positionPrize !== undefined) desc.positionPrize = data.positionPrize;
+  if (data.section       !== undefined) desc.section       = data.section;
+  if (data.semester      !== undefined) desc.semester      = parseInt(data.semester);
+  updateData.description = JSON.stringify(desc);
+
+  return culturalActivityRepo.update(id, updateData);
+};
+
+const remove = async (id, departmentCode) => {
+  const existing = await culturalActivityRepo.findById(id);
+  if (!existing) throw { statusCode: 404, message: 'Cultural activity not found.' };
+  if (departmentCode && existing.department_code !== departmentCode)
+    throw { statusCode: 403, message: 'Access denied.' };
+  await culturalActivityRepo.remove(id);
+  return { message: 'Cultural activity deleted successfully.' };
+};
+
+module.exports = { getList, getById, create, update, remove };
