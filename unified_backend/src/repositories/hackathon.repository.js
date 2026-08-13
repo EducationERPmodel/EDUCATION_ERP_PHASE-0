@@ -34,7 +34,7 @@ const findAll = async (departmentCode, {
     query(
       `SELECT a.*, s.name AS student_name, s.usn, d.department_code
        FROM activities a
-       JOIN students s ON s.student_id = a.student_id
+       JOIN students s ON s.library_id = a.student_id
        JOIN departments d ON d.department_id = s.department_id
        ${where}
        ORDER BY ${sortCol} ${dir}
@@ -44,7 +44,7 @@ const findAll = async (departmentCode, {
     query(
       `SELECT COUNT(*)::int AS total
        FROM activities a
-       JOIN students s ON s.student_id = a.student_id
+       JOIN students s ON s.library_id = a.student_id
        JOIN departments d ON d.department_id = s.department_id
        ${where}`,
       params,
@@ -58,7 +58,7 @@ const findById = async (id) => {
   const result = await query(
     `SELECT a.*, s.name AS student_name, s.usn
      FROM activities a
-     JOIN students s ON s.student_id = a.student_id
+     JOIN students s ON s.library_id = a.student_id
      WHERE a.activity_id = $1 AND a.activity_type = $2`,
     [id, ACTIVITY_TYPE],
   );

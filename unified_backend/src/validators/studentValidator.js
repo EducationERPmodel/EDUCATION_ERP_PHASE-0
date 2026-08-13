@@ -1,6 +1,10 @@
 /**
  * Unified Student Validators
  * From Admin-erp — covers all student CRUD and list operations
+ *
+ * NOTE (Task 1): library_id is now the PRIMARY KEY for students.
+ * - libraryId is REQUIRED on create (it is the PK, not auto-generated).
+ * - Route :id params are library_id strings, not integers.
  */
 
 const { body, query, param } = require('express-validator');
@@ -14,10 +18,11 @@ const createStudentRules = [
     .matches(/^[0-9+\-\s]{7,20}$/).withMessage('Phone number is invalid'),
   body('gender')
     .notEmpty().withMessage('Gender is required')
-    .isIn(['Male', 'Female']).withMessage('Gender must be Male or Female'),
+    .isIn(['Male', 'Female', 'Other']).withMessage('Gender must be Male, Female, or Other'),
+  // libraryId is now the PK — required on create
   body('libraryId')
-    .optional({ checkFalsy: true }).trim()
-    .isLength({ max: 50 }).withMessage('Library ID must be 50 characters or fewer'),
+    .trim().notEmpty().withMessage('Library ID is required')
+    .isLength({ min: 1, max: 50 }).withMessage('Library ID must be 1–50 characters'),
   body('usn')
     .optional({ checkFalsy: true }).trim()
     .isLength({ max: 50 }).withMessage('USN must be 50 characters or fewer'),
@@ -39,12 +44,24 @@ const createStudentRules = [
 ];
 
 const updateStudentRules = [
-  param('id').isInt({ min: 1 }).withMessage('Invalid student id'),
-  ...createStudentRules.map((rule) => rule.optional({ checkFalsy: false })),
+  // :id is a library_id string — validate as non-empty string, not integer
+  param('id')
+    .trim().notEmpty().withMessage('Student library ID is required')
+    .isLength({ min: 1, max: 50 }).withMessage('Invalid student library ID'),
+  ...createStudentRules
+    .filter(rule => {
+      // libraryId can remain optional on update (can't change PK via update)
+      const str = rule.toString();
+      return !str.includes("'libraryId'") && !str.includes('"libraryId"');
+    })
+    .map(rule => rule.optional({ checkFalsy: false })),
 ];
 
+// :id is a library_id string — validate as non-empty, max 50 chars
 const idParamRule = [
-  param('id').isInt({ min: 1 }).withMessage('Invalid student id'),
+  param('id')
+    .trim().notEmpty().withMessage('Student library ID is required')
+    .isLength({ min: 1, max: 50 }).withMessage('Invalid student library ID'),
 ];
 
 const listStudentsRules = [

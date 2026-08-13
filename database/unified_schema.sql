@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     role_id       BIGINT       REFERENCES roles(role_id) ON DELETE SET NULL,
     faculty_id    BIGINT,      -- wired to faculty(faculty_id) below
-    student_id    BIGINT,      -- wired to students(student_id) below
+    student_id    VARCHAR(50), -- wired to students(library_id) below
     status        VARCHAR(20)  NOT NULL DEFAULT 'active'
                                CHECK (status IN ('active','inactive','suspended')),
     last_login    TIMESTAMPTZ,
@@ -209,9 +209,8 @@ CREATE TABLE IF NOT EXISTS faculty_subjects (
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS students (
-    student_id    BIGSERIAL    PRIMARY KEY,
+    library_id    VARCHAR(50)  NOT NULL,
     usn           VARCHAR(50)  UNIQUE,        -- nullable until USN is assigned
-    library_id    VARCHAR(50)  UNIQUE,
     name          VARCHAR(150) NOT NULL,
     email         VARCHAR(150) UNIQUE,
     phone         VARCHAR(20),
@@ -229,7 +228,8 @@ CREATE TABLE IF NOT EXISTS students (
     status        VARCHAR(20)  NOT NULL DEFAULT 'Enrolled'
                                CHECK (status IN ('Enrolled','On Leave','Transferred','Inactive')),
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (library_id)
 );
 
 -- ── Deferred FK: users.student_id → students ─────────────────
@@ -247,7 +247,7 @@ END $$;
 ALTER TABLE users
     ADD CONSTRAINT fk_users_student
     FOREIGN KEY (student_id)
-    REFERENCES students(student_id)
+    REFERENCES students(library_id)
     ON DELETE SET NULL;
 
 -- BUG FIX: "section belongs to student's semester" cannot be a
@@ -264,7 +264,7 @@ BEGIN
     ) THEN
         RAISE EXCEPTION
             'section_id % does not belong to semester_id % for student %',
-            NEW.section_id, NEW.semester_id, NEW.student_id;
+            NEW.section_id, NEW.semester_id, NEW.library_id;
     END IF;
     RETURN NEW;
 END;
@@ -414,16 +414,16 @@ CREATE TRIGGER trg_prevent_faculty_double_booking
 -- subject and faculty are derived via classes.subject_id /
 -- classes.faculty_id.
 CREATE TABLE IF NOT EXISTS attendance (
-    attendance_id   BIGSERIAL   PRIMARY KEY,
-    student_id      BIGINT      NOT NULL REFERENCES students(student_id)
-                                          ON DELETE CASCADE,
-    class_id        BIGINT      NOT NULL REFERENCES classes(class_id)
-                                          ON DELETE RESTRICT,
-    attendance_date DATE        NOT NULL,
-    status          VARCHAR(10) NOT NULL
+    attendance_id   BIGSERIAL    PRIMARY KEY,
+    student_id      VARCHAR(50)  NOT NULL REFERENCES students(library_id)
+                                           ON DELETE CASCADE,
+    class_id        BIGINT       NOT NULL REFERENCES classes(class_id)
+                                           ON DELETE RESTRICT,
+    attendance_date DATE         NOT NULL,
+    status          VARCHAR(10)  NOT NULL
                     CHECK (status IN ('Present','Absent')),
     remarks         VARCHAR(255),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     UNIQUE (student_id, class_id, attendance_date)
 );
 
@@ -432,7 +432,7 @@ CREATE TABLE IF NOT EXISTS attendance (
 -- correct, no app-layer sync required.
 CREATE TABLE IF NOT EXISTS ia_marks (
     ia_id      BIGSERIAL    PRIMARY KEY,
-    student_id BIGINT       NOT NULL REFERENCES students(student_id)
+    student_id VARCHAR(50)  NOT NULL REFERENCES students(library_id)
                                       ON DELETE CASCADE,
     class_id   BIGINT       NOT NULL REFERENCES classes(class_id)
                                       ON DELETE RESTRICT,
@@ -474,7 +474,7 @@ CREATE TABLE IF NOT EXISTS assignment_submissions (
     submission_id BIGSERIAL    PRIMARY KEY,
     assignment_id BIGINT       NOT NULL REFERENCES assignments(assignment_id)
                                          ON DELETE CASCADE,
-    student_id    BIGINT       NOT NULL REFERENCES students(student_id)
+    student_id    VARCHAR(50)  NOT NULL REFERENCES students(library_id)
                                          ON DELETE CASCADE,
     submitted_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     file_url      VARCHAR(500),
@@ -494,7 +494,7 @@ CREATE TABLE IF NOT EXISTS assignment_submissions (
 -- table discriminated by activity_type.
 CREATE TABLE IF NOT EXISTS activities (
     activity_id    BIGSERIAL    PRIMARY KEY,
-    student_id     BIGINT       NOT NULL REFERENCES students(student_id)
+    student_id     VARCHAR(50)  NOT NULL REFERENCES students(library_id)
                                           ON DELETE CASCADE,
     faculty_id     BIGINT       REFERENCES faculty(faculty_id)
                                           ON DELETE SET NULL,
@@ -515,7 +515,7 @@ CREATE TABLE IF NOT EXISTS activities (
 -- ER diagram's achievements entity.
 CREATE TABLE IF NOT EXISTS achievements (
     achievement_id   BIGSERIAL    PRIMARY KEY,
-    student_id       BIGINT       NOT NULL REFERENCES students(student_id)
+    student_id       VARCHAR(50)  NOT NULL REFERENCES students(library_id)
                                             ON DELETE CASCADE,
     faculty_id       BIGINT       REFERENCES faculty(faculty_id)
                                             ON DELETE SET NULL,
@@ -544,7 +544,7 @@ CREATE TABLE IF NOT EXISTS achievements (
 
 CREATE TABLE IF NOT EXISTS student_transfers (
     transfer_id       BIGSERIAL   PRIMARY KEY,
-    student_id        BIGINT      NOT NULL REFERENCES students(student_id)
+    student_id        VARCHAR(50) NOT NULL REFERENCES students(library_id)
                                             ON DELETE CASCADE,
     old_program_id    BIGINT      REFERENCES programs(program_id)       ON DELETE SET NULL,
     old_department_id BIGINT      REFERENCES departments(department_id) ON DELETE SET NULL,

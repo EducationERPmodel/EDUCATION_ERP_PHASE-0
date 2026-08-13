@@ -11,11 +11,11 @@ const transfer = asyncHandler(async (req, res) => {
   const supportingDocumentUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
 
   const result = await transferService.transferStudent({
-    studentId: parseInt(studentId, 10),
-    newProgramId: parseInt(newProgramId, 10),
+    studentId,                              // library_id — string, do NOT parseInt
+    newProgramId:    parseInt(newProgramId, 10),
     newDepartmentId: parseInt(newDepartmentId, 10),
-    newSemester: parseInt(newSemester, 10),
-    newSectionId: parseInt(newSectionId, 10),
+    newSemester:     parseInt(newSemester, 10),
+    newSectionId:    parseInt(newSectionId, 10),
     remarks,
     supportingDocumentUrl,
   });
@@ -24,7 +24,8 @@ const transfer = asyncHandler(async (req, res) => {
 });
 
 const history = asyncHandler(async (req, res) => {
-  const rows = await transferService.getTransferHistory(parseInt(req.params.id, 10));
+  // req.params.id is a library_id string — do NOT parseInt
+  const rows = await transferService.getTransferHistory(req.params.id);
   success(res, rows);
 });
 

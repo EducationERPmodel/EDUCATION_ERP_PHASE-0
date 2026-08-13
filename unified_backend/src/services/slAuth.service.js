@@ -1,5 +1,6 @@
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
+const config  = require('../config');
 const slFacultyRepo = require('../repositories/slFacultyRepository');
 
 const SlAuthService = {
@@ -20,8 +21,8 @@ const SlAuthService = {
 
     const token = jwt.sign(
       { id: faculty.id, email: faculty.email, role: faculty.role, name: faculty.name },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn }
     );
 
     return {

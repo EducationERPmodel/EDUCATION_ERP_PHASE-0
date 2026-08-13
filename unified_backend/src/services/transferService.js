@@ -55,7 +55,7 @@ async function transferStudent(payload) {
            semester_id   = $3,
            section_id    = $4,
            updated_at    = NOW()
-       WHERE student_id  = $5`,
+       WHERE library_id  = $5`,
       [payload.newProgramId, payload.newDepartmentId, newSemesterId, payload.newSectionId, payload.studentId],
     );
 

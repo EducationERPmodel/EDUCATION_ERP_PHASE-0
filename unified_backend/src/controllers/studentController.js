@@ -64,21 +64,21 @@ const getStudents = async (req, res) => {
 /**
  * Get Student by ID (Admin-erp pattern)
  * GET /api/students/:id
+ * :id is the student's library_id (string)
  */
 const getById = asyncHandler(async (req, res) => {
-  const student = await studentService.getStudent(parseInt(req.params.id, 10));
+  const student = await studentService.getStudent(req.params.id);
   success(res, student);
 });
 
 /**
  * Get Comprehensive Student Profile (faculty_student pattern)
  * GET /api/students/:id/profile
- * Returns: student info, attendance summary, IA marks, assignments, achievements
+ * :id is the student's library_id (string)
  */
 const getStudentProfile = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params;  // library_id string
   try {
-    // Use student_id (unified schema PK)
     const studentResult = await pool.query(
       `SELECT s.*, sem.semester_number AS semester, sec.section_name AS section,
               p.program_name, d.department_name
@@ -87,7 +87,7 @@ const getStudentProfile = async (req, res) => {
        JOIN sections    sec ON sec.section_id   = s.section_id
        JOIN programs    p   ON p.program_id     = s.program_id
        JOIN departments d   ON d.department_id  = s.department_id
-       WHERE s.student_id = $1`,
+       WHERE s.library_id = $1`,
       [id],
     );
     if (!studentResult.rows.length)
@@ -130,7 +130,7 @@ const getStudentProfile = async (req, res) => {
       [id],
     );
 
-    // IA marks (student_id-based, average is DB-generated)
+    // IA marks (library_id-based, average is DB-generated)
     const iaResult = await pool.query(
       `SELECT im.*, sub.subject_name, sub.subject_code
        FROM ia_marks im
@@ -183,7 +183,7 @@ const getStudentsBySection = async (req, res) => {
     const sectionName    = req.params.section.toUpperCase();
 
     const result = await pool.query(
-      `SELECT s.student_id, s.usn, s.name, s.email, s.phone,
+      `SELECT s.library_id AS student_id, s.usn, s.name, s.email, s.phone,
               sem.semester_number, sec.section_name
        FROM students s
        JOIN semesters sem ON sem.semester_id = s.semester_id
@@ -210,19 +210,19 @@ const createStudent = asyncHandler(async (req, res) => {
 
 /**
  * Update Student (service layer — unified schema)
- * PUT /api/students/:id
+ * PUT /api/students/:id   — :id is library_id
  */
 const updateStudent = asyncHandler(async (req, res) => {
-  const student = await studentService.updateStudent(parseInt(req.params.id, 10), req.body);
+  const student = await studentService.updateStudent(req.params.id, req.body);
   success(res, student);
 });
 
 /**
  * Delete Student (service layer — unified schema)
- * DELETE /api/students/:id
+ * DELETE /api/students/:id   — :id is library_id
  */
 const deleteStudent = asyncHandler(async (req, res) => {
-  await studentService.deleteStudent(parseInt(req.params.id, 10));
+  await studentService.deleteStudent(req.params.id);
   success(res, { deleted: true });
 });
 

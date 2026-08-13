@@ -1,0 +1,558 @@
+// =============================================================================
+// Prisma Schema — SVCE Unified ERP
+// =============================================================================
+// PURPOSE: Database schema reproducibility only.
+//   - Use `prisma migrate deploy` to apply migrations on a fresh database.
+//   - The runtime backend uses raw pg queries (no Prisma Client at runtime).
+//   - Do NOT replace the existing pg-based repositories with Prisma Client.
+//
+// SETUP FOR A NEW DEVELOPER:
+//   1. Copy .env.example → .env and fill in DATABASE_URL
+//   2. createdb <your_db_name>
+//   3. cd unified_backend && npx prisma migrate deploy
+//   4. psql -U postgres -d <db> -f database/unified_seed_empty.sql
+//   5. npm start
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+model Role {
+  role_id     BigInt   @id @default(autoincrement())
+  role_name   String   @unique @db.VarChar(100)
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @default(now()) @db.Timestamptz
+
+  users                  User[]
+  coordinator_assignments CoordinatorAssignment[]
+
+  @@map("roles")
+}
+
+model User {
+  user_id       BigInt    @id @default(autoincrement())
+  username      String    @unique @db.VarChar(50)
+  email         String    @unique @db.VarChar(150)
+  password_hash String    @db.VarChar(255)
+  role_id       BigInt?
+  faculty_id    BigInt?
+  student_id    String?  @db.VarChar(50)
+  status        String    @default("active") @db.VarChar(20)
+  last_login    DateTime? @db.Timestamptz
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  updated_at    DateTime  @default(now()) @db.Timestamptz
+
+  role           Role?           @relation(fields: [role_id], references: [role_id], onDelete: SetNull)
+  faculty        Faculty?        @relation(fields: [faculty_id], references: [faculty_id], onDelete: SetNull)
+  student        Student?        @relation(fields: [student_id], references: [library_id], onDelete: SetNull)
+  refresh_tokens RefreshToken[]
+  notifications  Notification[]
+  settings       Setting?
+  audit_logs     AuditLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  token_id   BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  token_hash String   @unique @db.VarChar(255)
+  expires_at DateTime @db.Timestamptz
+  revoked    Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("refresh_tokens")
+}
+
+// ─── Master Data ──────────────────────────────────────────────────────────────
+
+model Department {
+  department_id   BigInt   @id @default(autoincrement())
+  department_name String   @unique @db.VarChar(100)
+  department_code String   @unique @db.VarChar(20)
+  hod_faculty_id  BigInt?
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now()) @db.Timestamptz
+  updated_at      DateTime @default(now()) @db.Timestamptz
+
+  hod_faculty             Faculty?                @relation("DepartmentHOD", fields: [hod_faculty_id], references: [faculty_id], onDelete: SetNull)
+  programs                Program[]
+  sections                Section[]
+  faculty                 Faculty[]               @relation("FacultyDepartment")
+  students                Student[]
+  subjects                Subject[]
+  coordinator_assignments CoordinatorAssignment[]
+  old_transfers           StudentTransfer[]       @relation("OldDept")
+  new_transfers           StudentTransfer[]       @relation("NewDept")
+
+  @@map("departments")
+}
+
+model Program {
+  program_id    BigInt   @id @default(autoincrement())
+  program_name  String   @unique @db.VarChar(100)
+  program_code  String   @unique @db.VarChar(20)
+  department_id BigInt
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @db.Timestamptz
+
+  department       Department        @relation(fields: [department_id], references: [department_id], onDelete: Restrict)
+  students         Student[]
+  subjects         Subject[]
+  old_transfers    StudentTransfer[] @relation("OldProgram")
+  new_transfers    StudentTransfer[] @relation("NewProgram")
+
+  @@map("programs")
+}
+
+model Semester {
+  semester_id     BigInt   @id @default(autoincrement())
+  semester_number Int      @unique
+  created_at      DateTime @default(now()) @db.Timestamptz
+  updated_at      DateTime @default(now()) @db.Timestamptz
+
+  sections      Section[]
+  students      Student[]
+  subjects      Subject[]
+  classes       Class[]
+  old_transfers StudentTransfer[] @relation("OldSemester")
+  new_transfers StudentTransfer[] @relation("NewSemester")
+
+  @@map("semesters")
+}
+
+model Section {
+  section_id    BigInt   @id @default(autoincrement())
+  section_name  String   @db.VarChar(10)
+  semester_id   BigInt
+  department_id BigInt
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @db.Timestamptz
+
+  semester      Semester          @relation(fields: [semester_id], references: [semester_id], onDelete: Restrict)
+  department    Department        @relation(fields: [department_id], references: [department_id], onDelete: Restrict)
+  students      Student[]
+  classes       Class[]
+  old_transfers StudentTransfer[] @relation("OldSection")
+  new_transfers StudentTransfer[] @relation("NewSection")
+
+  @@unique([section_name, semester_id, department_id])
+  @@map("sections")
+}
+
+model Faculty {
+  faculty_id        BigInt   @id @default(autoincrement())
+  employee_id       String   @unique @db.VarChar(50)
+  name              String   @db.VarChar(150)
+  email             String   @unique @db.VarChar(150)
+  phone             String?  @db.VarChar(20)
+  designation       String   @db.VarChar(100)
+  qualification     String?  @db.VarChar(150)
+  specialization    String?  @db.VarChar(150)
+  experience_years  Int      @default(0)
+  department_id     BigInt
+  photo_url         String?  @db.VarChar(500)
+  username          String   @unique @db.VarChar(50)
+  password_hash     String   @db.VarChar(255)
+  coordinator_roles String?  @db.VarChar(500)
+  is_hod            Boolean  @default(false)
+  status            String   @default("ACTIVE") @db.VarChar(20)
+  created_at        DateTime @default(now()) @db.Timestamptz
+  updated_at        DateTime @default(now()) @db.Timestamptz
+
+  department              Department              @relation("FacultyDepartment", fields: [department_id], references: [department_id], onDelete: Restrict)
+  hod_of_departments      Department[]            @relation("DepartmentHOD")
+  users                   User[]
+  faculty_subjects        FacultySubject[]
+  classes_taught          Class[]                 @relation("ClassFaculty")
+  classes_as_teacher      Class[]                 @relation("ClassTeacher")
+  activities              Activity[]
+  achievements            Achievement[]
+  coordinator_assignments CoordinatorAssignment[]
+
+  @@index([department_id])
+  @@index([username])
+  @@index([status])
+  @@index([employee_id])
+  @@map("faculty")
+}
+
+model FacultySubject {
+  faculty_id  BigInt
+  subject_id  BigInt
+  assigned_at DateTime @default(now()) @db.Timestamptz
+
+  faculty Faculty @relation(fields: [faculty_id], references: [faculty_id], onDelete: Cascade)
+  subject Subject @relation(fields: [subject_id], references: [subject_id], onDelete: Cascade)
+
+  @@id([faculty_id, subject_id])
+  @@index([subject_id])
+  @@map("faculty_subjects")
+}
+
+// ─── Student ──────────────────────────────────────────────────────────────────
+
+model Student {
+  library_id    String   @id @db.VarChar(50)
+  usn           String?  @unique @db.VarChar(50)
+  name          String   @db.VarChar(150)
+  email         String?  @unique @db.VarChar(150)
+  phone         String?  @db.VarChar(20)
+  gender        String   @db.VarChar(10)
+  program_id    BigInt
+  department_id BigInt
+  semester_id   BigInt
+  section_id    BigInt
+  academic_year String   @db.VarChar(20)
+  status        String   @default("Enrolled") @db.VarChar(20)
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @db.Timestamptz
+
+  program              Program               @relation(fields: [program_id], references: [program_id], onDelete: Restrict)
+  department           Department            @relation(fields: [department_id], references: [department_id], onDelete: Restrict)
+  semester             Semester              @relation(fields: [semester_id], references: [semester_id], onDelete: Restrict)
+  section              Section               @relation(fields: [section_id], references: [section_id], onDelete: Restrict)
+  users                User[]
+  attendance           Attendance[]
+  ia_marks             IAMark[]
+  assignment_subs      AssignmentSubmission[]
+  activities           Activity[]
+  achievements         Achievement[]
+  transfers            StudentTransfer[]
+
+  @@index([usn])
+  @@index([name])
+  @@index([department_id])
+  @@index([program_id])
+  @@index([semester_id])
+  @@index([section_id])
+  @@index([status])
+  @@map("students")
+}
+
+// ─── Subjects, Classes, Timetable ────────────────────────────────────────────
+
+model Subject {
+  subject_id    BigInt   @id @default(autoincrement())
+  subject_code  String   @unique @db.VarChar(20)
+  subject_name  String   @db.VarChar(100)
+  credits       Int?
+  program_id    BigInt
+  semester_id   BigInt
+  department_id BigInt
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @db.Timestamptz
+
+  program          Program          @relation(fields: [program_id], references: [program_id], onDelete: Restrict)
+  semester         Semester         @relation(fields: [semester_id], references: [semester_id], onDelete: Restrict)
+  department       Department       @relation(fields: [department_id], references: [department_id], onDelete: Restrict)
+  faculty_subjects FacultySubject[]
+  classes          Class[]
+
+  @@index([program_id])
+  @@index([semester_id])
+  @@index([department_id])
+  @@map("subjects")
+}
+
+model Class {
+  class_id         BigInt   @id @default(autoincrement())
+  semester_id      BigInt
+  section_id       BigInt
+  subject_id       BigInt
+  faculty_id       BigInt
+  academic_year    String   @db.VarChar(20)
+  class_teacher_id BigInt?
+  created_at       DateTime @default(now()) @db.Timestamptz
+  updated_at       DateTime @default(now()) @db.Timestamptz
+
+  semester      Semester   @relation(fields: [semester_id], references: [semester_id], onDelete: Restrict)
+  section       Section    @relation(fields: [section_id], references: [section_id], onDelete: Restrict)
+  subject       Subject    @relation(fields: [subject_id], references: [subject_id], onDelete: Restrict)
+  faculty       Faculty    @relation("ClassFaculty", fields: [faculty_id], references: [faculty_id], onDelete: Restrict)
+  class_teacher Faculty?   @relation("ClassTeacher", fields: [class_teacher_id], references: [faculty_id], onDelete: SetNull)
+  timetable     Timetable[]
+  attendance    Attendance[]
+  ia_marks      IAMark[]
+  assignments   Assignment[]
+
+  @@unique([semester_id, section_id, subject_id, academic_year])
+  @@index([semester_id])
+  @@index([section_id])
+  @@index([subject_id])
+  @@index([faculty_id])
+  @@map("classes")
+}
+
+model Timetable {
+  timetable_id BigInt   @id @default(autoincrement())
+  class_id     BigInt
+  day_of_week  String   @db.VarChar(10)
+  period       Int
+  room_number  String?  @db.VarChar(20)
+  created_at   DateTime @default(now()) @db.Timestamptz
+  updated_at   DateTime @default(now()) @db.Timestamptz
+
+  class Class @relation(fields: [class_id], references: [class_id], onDelete: Restrict)
+
+  @@unique([class_id, day_of_week, period])
+  @@index([class_id])
+  @@map("timetable")
+}
+
+// ─── Academic Operations ──────────────────────────────────────────────────────
+
+model Attendance {
+  attendance_id   BigInt   @id @default(autoincrement())
+  student_id      String   @db.VarChar(50)
+  class_id        BigInt
+  attendance_date DateTime @db.Date
+  status          String   @db.VarChar(10)
+  remarks         String?  @db.VarChar(255)
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  student Student @relation(fields: [student_id], references: [library_id], onDelete: Cascade)
+  class   Class   @relation(fields: [class_id], references: [class_id], onDelete: Restrict)
+
+  @@unique([student_id, class_id, attendance_date])
+  @@index([student_id])
+  @@index([class_id])
+  @@index([attendance_date])
+  @@map("attendance")
+}
+
+// NOTE: ia_marks.average is a GENERATED ALWAYS AS STORED column in PostgreSQL.
+// Prisma does not support generated columns natively; it is created by the raw
+// SQL migration. The field is omitted from the Prisma model to avoid conflicts.
+model IAMark {
+  ia_id      BigInt  @id @default(autoincrement())
+  student_id String  @db.VarChar(50)
+  class_id   BigInt
+  ia1        Int?
+  ia2        Int?
+  ia3        Int?
+  // average is a DB-generated column — managed by PostgreSQL, not Prisma
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @default(now()) @db.Timestamptz
+
+  student Student @relation(fields: [student_id], references: [library_id], onDelete: Cascade)
+  class   Class   @relation(fields: [class_id], references: [class_id], onDelete: Restrict)
+
+  @@unique([student_id, class_id])
+  @@index([student_id])
+  @@index([class_id])
+  @@map("ia_marks")
+}
+
+model Assignment {
+  assignment_id  BigInt   @id @default(autoincrement())
+  class_id       BigInt
+  title          String   @db.VarChar(255)
+  description    String?
+  due_date       DateTime? @db.Date
+  marks          Int?     @default(0)
+  attachment_url String?  @db.VarChar(500)
+  status         String   @default("Open") @db.VarChar(20)
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @default(now()) @db.Timestamptz
+
+  class       Class                  @relation(fields: [class_id], references: [class_id], onDelete: Restrict)
+  submissions AssignmentSubmission[]
+
+  @@index([class_id])
+  @@index([status])
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  submission_id BigInt    @id @default(autoincrement())
+  assignment_id BigInt
+  student_id    String    @db.VarChar(50)
+  submitted_at  DateTime  @default(now()) @db.Timestamptz
+  file_url      String?   @db.VarChar(500)
+  marks         Int?
+  remarks       String?   @db.VarChar(500)
+
+  assignment Assignment @relation(fields: [assignment_id], references: [assignment_id], onDelete: Cascade)
+  student    Student    @relation(fields: [student_id], references: [library_id], onDelete: Cascade)
+
+  @@unique([assignment_id, student_id])
+  @@index([assignment_id])
+  @@index([student_id])
+  @@map("assignment_submissions")
+}
+
+// ─── Activities & Achievements ────────────────────────────────────────────────
+
+model Activity {
+  activity_id   BigInt   @id @default(autoincrement())
+  student_id    String   @db.VarChar(50)
+  faculty_id    BigInt?
+  activity_type String   @db.VarChar(50)
+  title         String   @db.VarChar(255)
+  description   String?
+  academic_year String?  @db.VarChar(20)
+  status        String   @default("Completed") @db.VarChar(20)
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @db.Timestamptz
+
+  student Student  @relation(fields: [student_id], references: [library_id], onDelete: Cascade)
+  faculty Faculty? @relation(fields: [faculty_id], references: [faculty_id], onDelete: SetNull)
+
+  @@index([student_id])
+  @@index([activity_type])
+  @@index([faculty_id])
+  @@map("activities")
+}
+
+model Achievement {
+  achievement_id   BigInt    @id @default(autoincrement())
+  student_id       String    @db.VarChar(50)
+  faculty_id       BigInt?
+  title            String    @db.VarChar(255)
+  level            String?   @db.VarChar(50)
+  type             String    @db.VarChar(50)
+  position         String?   @db.VarChar(100)
+  certificate_url  String?   @db.VarChar(500)
+  achievement_date DateTime? @db.Date
+  created_at       DateTime  @default(now()) @db.Timestamptz
+  updated_at       DateTime  @default(now()) @db.Timestamptz
+
+  student Student  @relation(fields: [student_id], references: [library_id], onDelete: Cascade)
+  faculty Faculty? @relation(fields: [faculty_id], references: [faculty_id], onDelete: SetNull)
+
+  @@index([student_id])
+  @@index([type])
+  @@map("achievements")
+}
+
+// ─── Admin Operations ─────────────────────────────────────────────────────────
+
+model StudentTransfer {
+  transfer_id       BigInt   @id @default(autoincrement())
+  student_id        String   @db.VarChar(50)
+  old_program_id    BigInt?
+  old_department_id BigInt?
+  old_semester_id   BigInt?
+  old_section_id    BigInt?
+  new_program_id    BigInt
+  new_department_id BigInt
+  new_semester_id   BigInt
+  new_section_id    BigInt
+  reason            String?  @db.VarChar(500)
+  document_url      String?  @db.VarChar(500)
+  transfer_date     DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  created_at        DateTime @default(now()) @db.Timestamptz
+
+  student           Student     @relation(fields: [student_id], references: [library_id], onDelete: Cascade)
+  old_program       Program?    @relation("OldProgram", fields: [old_program_id], references: [program_id], onDelete: SetNull)
+  new_program       Program     @relation("NewProgram", fields: [new_program_id], references: [program_id], onDelete: Restrict)
+  old_department    Department? @relation("OldDept", fields: [old_department_id], references: [department_id], onDelete: SetNull)
+  new_department    Department  @relation("NewDept", fields: [new_department_id], references: [department_id], onDelete: Restrict)
+  old_semester      Semester?   @relation("OldSemester", fields: [old_semester_id], references: [semester_id], onDelete: SetNull)
+  new_semester      Semester    @relation("NewSemester", fields: [new_semester_id], references: [semester_id], onDelete: Restrict)
+  old_section       Section?    @relation("OldSection", fields: [old_section_id], references: [section_id], onDelete: SetNull)
+  new_section       Section     @relation("NewSection", fields: [new_section_id], references: [section_id], onDelete: Restrict)
+
+  @@index([student_id])
+  @@index([transfer_date])
+  @@map("student_transfers")
+}
+
+model CoordinatorAssignment {
+  coordinator_id BigInt   @id @default(autoincrement())
+  faculty_id     BigInt
+  role_id        BigInt
+  department_id  BigInt
+  assigned_date  DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  remarks        String?  @db.VarChar(500)
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @default(now()) @db.Timestamptz
+
+  faculty    Faculty    @relation(fields: [faculty_id], references: [faculty_id], onDelete: Cascade)
+  role       Role       @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
+  department Department @relation(fields: [department_id], references: [department_id], onDelete: Cascade)
+
+  @@unique([faculty_id, role_id, department_id])
+  @@index([faculty_id])
+  @@index([department_id])
+  @@map("coordinator_assignments")
+}
+
+// ─── Academic Settings ────────────────────────────────────────────────────────
+
+model AcademicSetting {
+  setting_id            BigInt   @id @default(autoincrement())
+  academic_year         String   @unique @db.VarChar(20)
+  current_semester_type String   @db.VarChar(10)
+  created_at            DateTime @default(now()) @db.Timestamptz
+  updated_at            DateTime @default(now()) @db.Timestamptz
+
+  @@map("academic_settings")
+}
+
+// ─── Communication & System ───────────────────────────────────────────────────
+
+model Notification {
+  notification_id BigInt   @id @default(autoincrement())
+  user_id         BigInt
+  title           String   @db.VarChar(255)
+  message         String
+  read_status     String   @default("Unread") @db.VarChar(10)
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([read_status])
+  @@map("notifications")
+}
+
+model Setting {
+  setting_id           BigInt   @id @default(autoincrement())
+  user_id              BigInt   @unique
+  theme                String?  @default("light") @db.VarChar(20)
+  language             String?  @default("en") @db.VarChar(20)
+  notification_enabled Boolean  @default(true)
+  created_at           DateTime @default(now()) @db.Timestamptz
+  updated_at           DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// ─── Audit ────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  audit_id   BigInt   @id @default(autoincrement())
+  user_id    BigInt?
+  action     String   @db.VarChar(100)
+  module     String?  @db.VarChar(50)
+  record_id  String?  @db.VarChar(100)
+  old_value  Json?
+  new_value  Json?
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user User? @relation(fields: [user_id], references: [user_id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([action])
+  @@index([created_at])
+  @@index([module])
+  @@map("audit_logs")
+}

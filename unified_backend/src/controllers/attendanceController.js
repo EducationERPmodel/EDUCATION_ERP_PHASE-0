@@ -29,7 +29,7 @@ const getAttendance = async (req, res) => {
               s.name AS student_name, s.usn,
               sub.subject_name, sub.subject_code
        FROM attendance a
-       JOIN students s   ON s.student_id  = a.student_id
+       JOIN students s   ON s.library_id  = a.student_id
        JOIN classes c    ON c.class_id    = a.class_id
        JOIN subjects sub ON sub.subject_id = c.subject_id
        ${where}

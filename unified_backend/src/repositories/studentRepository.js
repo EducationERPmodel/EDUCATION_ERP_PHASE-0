@@ -2,8 +2,8 @@
  * Unified Student Repository
  * Pure pg — no Prisma.
  *
- * Admin-erp pattern  → full CRUD (findAll, findById, create, update, remove, setStatus)
- * education_erp pattern → getStudentsBySectionId (used by studentList.service)
+ * Primary key: library_id (VARCHAR 50) — Task 1 change.
+ * All lookup methods accept the library_id string as the id parameter.
  */
 
 const { query } = require('../config/db');
@@ -12,7 +12,7 @@ const { query } = require('../config/db');
 
 const SELECT_BASE = `
   SELECT
-    s.student_id   AS "id",
+    s.library_id   AS "id",
     s.name,
     s.phone,
     s.email,
@@ -55,7 +55,6 @@ async function findAll({
   let idx = 1;
 
   if (search) {
-    // same param index used three times — pg handles this fine
     conditions.push(`(s.name ILIKE $${idx} OR s.usn ILIKE $${idx} OR s.library_id ILIKE $${idx})`);
     params.push(`%${search}%`);
     idx++;
@@ -88,8 +87,8 @@ async function findAll({
   return { rows: dataResult.rows, total: countResult.rows[0].total };
 }
 
-async function findById(id) {
-  const result = await query(`${SELECT_BASE} WHERE s.student_id = $1`, [id]);
+async function findById(libraryId) {
+  const result = await query(`${SELECT_BASE} WHERE s.library_id = $1`, [libraryId]);
   return result.rows[0] || null;
 }
 
@@ -101,18 +100,19 @@ async function create(data) {
   if (!semResult.rows.length) throw new Error(`Invalid semester number: ${data.semester}`);
   const semesterId = semResult.rows[0].semester_id;
 
-  const result = await query(
+  if (!data.libraryId) throw new Error('libraryId is required to create a student.');
+
+  await query(
     `INSERT INTO students
-       (name, phone, email, gender, library_id, usn, academic_year,
+       (library_id, name, phone, email, gender, usn, academic_year,
         program_id, department_id, semester_id, section_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     RETURNING student_id`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
     [
+      data.libraryId,
       data.name,
       data.phone       || null,
       data.email       || null,
       data.gender,
-      data.libraryId   || null,
       data.usn         || null,
       data.academicYear,
       data.programId,
@@ -121,10 +121,10 @@ async function create(data) {
       data.sectionId,
     ],
   );
-  return findById(result.rows[0].student_id);
+  return findById(data.libraryId);
 }
 
-async function update(id, data) {
+async function update(libraryId, data) {
   const fields = [];
   const params = [];
   let idx = 1;
@@ -161,27 +161,28 @@ async function update(id, data) {
     }
   });
 
-  if (!fields.length) return findById(id);
+  if (!fields.length) return findById(libraryId);
 
   fields.push('updated_at = NOW()');
-  params.push(id);
+  params.push(libraryId);
 
   await query(
-    `UPDATE students SET ${fields.join(', ')} WHERE student_id = $${idx}`,
+    `UPDATE students SET ${fields.join(', ')} WHERE library_id = $${idx}`,
     params,
   );
-  return findById(id);
+  // If library_id itself was updated, return by new value; else by original
+  return findById(data.libraryId || libraryId);
 }
 
-async function remove(id) {
-  const result = await query('DELETE FROM students WHERE student_id = $1', [id]);
+async function remove(libraryId) {
+  const result = await query('DELETE FROM students WHERE library_id = $1', [libraryId]);
   return result.rowCount > 0;
 }
 
-async function setStatus(id, status) {
+async function setStatus(libraryId, status) {
   await query(
-    'UPDATE students SET status = $1, updated_at = NOW() WHERE student_id = $2',
-    [status, id],
+    'UPDATE students SET status = $1, updated_at = NOW() WHERE library_id = $2',
+    [status, libraryId],
   );
 }
 
@@ -190,7 +191,7 @@ async function setStatus(id, status) {
 async function getStudentsBySectionId(sectionId) {
   const result = await query(
     `SELECT
-       s.student_id  AS id,
+       s.library_id  AS id,
        s.usn,
        s.name,
        s.phone,
@@ -207,13 +208,13 @@ async function getStudentsBySectionId(sectionId) {
               ) AS attendance_percentage
        FROM attendance
        GROUP BY student_id
-     ) att  ON att.student_id  = s.student_id
+     ) att  ON att.student_id  = s.library_id
      LEFT JOIN (
        SELECT student_id,
               ROUND(AVG((COALESCE(ia1,0) + COALESCE(ia2,0) + COALESCE(ia3,0)) / 3.0), 2) AS performance_percentage
        FROM ia_marks
        GROUP BY student_id
-     ) perf ON perf.student_id = s.student_id
+     ) perf ON perf.student_id = s.library_id
      WHERE s.section_id = $1
      ORDER BY s.usn ASC`,
     [sectionId],

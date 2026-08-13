@@ -42,10 +42,10 @@ const create = async (data, departmentCode) => {
   if (!data.student_id)  throw { statusCode: 400, message: 'student_id is required.' };
   if (!data.projectName) throw { statusCode: 400, message: 'projectName is required.' };
 
-  // Students array — at minimum include the primary student
+  // Students array — at minimum include the primary student (library_id is the PK)
   const students = Array.isArray(data.students) ? data.students : [];
-  if (!students.some(s => s.student_id === data.student_id)) {
-    students.unshift({ student_id: data.student_id });
+  if (!students.some(s => s.library_id === data.student_id)) {
+    students.unshift({ library_id: data.student_id });
   }
 
   return industryProjectRepo.create({
@@ -98,12 +98,12 @@ const addStudent = async (id, studentData, departmentCode) => {
   try { desc = JSON.parse(existing.description || '{}'); } catch {}
   const students = desc.students || [];
 
-  if (students.some(s => s.student_id === studentData.student_id)) {
+  if (students.some(s => s.library_id === studentData.student_id)) {
     throw { statusCode: 409, message: 'Student already in this project.' };
   }
 
   students.push({
-    student_id:  studentData.student_id,
+    library_id:  studentData.student_id,
     studentName: studentData.studentName || null,
     usn:         studentData.usn         || null,
     semester:    studentData.semester    || null,
@@ -123,7 +123,7 @@ const removeStudent = async (id, studentId, departmentCode) => {
   let desc = {};
   try { desc = JSON.parse(existing.description || '{}'); } catch {}
   const before = (desc.students || []).length;
-  desc.students = (desc.students || []).filter(s => s.student_id !== parseInt(studentId));
+  desc.students = (desc.students || []).filter(s => s.library_id !== studentId);
   if (desc.students.length === before) throw { statusCode: 404, message: 'Student not found in project.' };
 
   return industryProjectRepo.update(id, { description: JSON.stringify(desc) });

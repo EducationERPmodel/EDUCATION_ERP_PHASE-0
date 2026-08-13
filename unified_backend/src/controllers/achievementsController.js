@@ -8,6 +8,7 @@
 const pool = require('../config/db').pool;
 
 // GET /achievements?student_id=X
+// student_id here is the library_id value
 const getAchievements = async (req, res) => {
   const { student_id } = req.query;
   try {
@@ -21,7 +22,7 @@ const getAchievements = async (req, res) => {
       : await pool.query(
           `SELECT a.*, s.name AS student_name
            FROM achievements a
-           JOIN students s ON s.student_id = a.student_id
+           JOIN students s ON s.library_id = a.student_id
            ORDER BY a.created_at DESC`,
         );
     res.json(result.rows);

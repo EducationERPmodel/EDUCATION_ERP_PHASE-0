@@ -40,7 +40,7 @@ const getDashboardStats = async (req, res) => {
     const recentIA = await pool.query(
       `SELECT 'IA Marks added for: ' || s.name AS activity, im.created_at
        FROM ia_marks im
-       JOIN students s ON s.student_id = im.student_id
+       JOIN students s ON s.library_id = im.student_id
        ORDER BY im.created_at DESC LIMIT 2`
     );
 
