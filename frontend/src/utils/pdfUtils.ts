@@ -2,16 +2,15 @@
  * extractTextFromFile
  *
  * Strategy A — TXT:
- *   Read directly on device via expo-file-system/legacy (no upload needed).
+ *   Use the global fetch() with the file URI — works on all React Native
+ *   URI types (file://, content://, cache://) without any native module.
+ *   No expo-file-system needed.
  *
  * Strategy B — PDF:
- *   Copy to app cache via expo-file-system/legacy so the URI is always
- *   a stable file:// path, then upload to POST /aichecker/extract.
- *
- * Uses expo-file-system/legacy (not the deprecated default export)
- * to stay compatible with Expo SDK 54.
+ *   Upload via multipart/form-data to POST /aichecker/extract.
+ *   copyToCacheDirectory:true in the picker already ensures a readable URI.
+ *   Do NOT set Content-Type manually — axios sets it with the boundary.
  */
-import * as FileSystem from 'expo-file-system/legacy';
 import api from '../services/api';
 
 export interface PickedFile {
@@ -28,47 +27,35 @@ export async function extractTextFromFile(file: PickedFile): Promise<string> {
     file.name.toLowerCase().endsWith('.pdf') ||
     file.mimeType === 'application/pdf';
 
-  // ── Strategy A: TXT — read directly on device ────────────────────
+  // ── Strategy A: TXT — fetch directly, no native module ───────────
   if (!isPDF) {
     try {
-      const content = await FileSystem.readAsStringAsync(file.uri, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-      if (!content?.trim()) throw new Error('File is empty.');
-      return content;
+      const response = await fetch(file.uri);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const text = await response.text();
+      if (!text?.trim()) throw new Error('File is empty.');
+      return text;
     } catch (err: any) {
       throw new Error(`Could not read text file: ${err.message}`);
     }
   }
 
-  // ── Strategy B: PDF — copy to cache then upload ───────────────────
-  let uploadUri = file.uri;
-
-  try {
-    const dest = (FileSystem.cacheDirectory ?? '') + encodeURIComponent(file.name);
-    await FileSystem.copyAsync({ from: file.uri, to: dest });
-    uploadUri = dest;
-  } catch {
-    // Copy failed — try uploading the original URI anyway
-    uploadUri = file.uri;
-  }
-
+  // ── Strategy B: PDF — upload to backend for pdf-parse ────────────
   const formData = new FormData();
   formData.append('file', {
-    uri:  uploadUri,
+    uri:  file.uri,
     name: file.name,
     type: 'application/pdf',
   } as any);
 
   try {
-    // Do NOT set Content-Type manually — axios sets it with the boundary
     const response = await api.post<{ text: string }>(
       '/aichecker/extract',
       formData,
       { timeout: 30000 }
     );
     const text = response.data?.text ?? '';
-    if (!text.trim()) throw new Error('PDF appears to be empty or image-only (scanned PDFs are not supported).');
+    if (!text.trim()) throw new Error('PDF appears to be empty or image-only.');
     return text;
   } catch (err: any) {
     const serverMsg: string | undefined =
