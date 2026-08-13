@@ -3,18 +3,17 @@ const router   = express.Router();
 const multer   = require('multer');
 const { extractText } = require('../controllers/aiCheckerController');
 
-// Store file in memory (buffer) — no disk I/O needed
+// multer v2 — fileFilter uses cb(accept: boolean) not cb(null, boolean)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (req, file, cb) => {
     const allowed = ['text/plain', 'application/pdf'];
-    const name = file.originalname.toLowerCase();
-    if (
-      allowed.includes(file.mimetype) ||
-      name.endsWith('.txt') ||
-      name.endsWith('.pdf')
-    ) {
+    const name    = file.originalname.toLowerCase();
+    const ok      = allowed.includes(file.mimetype) ||
+                    name.endsWith('.txt') ||
+                    name.endsWith('.pdf');
+    if (ok) {
       cb(null, true);
     } else {
       cb(new Error('Only .txt and .pdf files are allowed.'));
@@ -22,7 +21,7 @@ const upload = multer({
   },
 });
 
-// POST /aichecker/extract  — single file, field name "file"
+// POST /aichecker/extract  — field name must be "file"
 router.post('/extract', upload.single('file'), extractText);
 
 module.exports = router;

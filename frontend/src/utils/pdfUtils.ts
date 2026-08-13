@@ -1,45 +1,81 @@
 /**
  * extractTextFromFile
  *
- * Strategy:
- *  - Upload the file to the backend POST /aichecker/extract
- *  - Backend uses pdf-parse (for PDFs) or buffer.toString (for TXT)
- *  - Returns extracted plain text
+ * Strategy A — TXT:
+ *   Read directly on device via expo-file-system/legacy (no upload needed).
  *
- * This approach works for BOTH .txt and .pdf on Android/iOS in Expo Go
- * without any native PDF module.
+ * Strategy B — PDF:
+ *   Copy to app cache via expo-file-system/legacy so the URI is always
+ *   a stable file:// path, then upload to POST /aichecker/extract.
  *
- * File object shape from expo-document-picker v14:
- *   { uri, name, mimeType, size }
+ * Uses expo-file-system/legacy (not the deprecated default export)
+ * to stay compatible with Expo SDK 54.
  */
+import * as FileSystem from 'expo-file-system/legacy';
 import api from '../services/api';
 
-interface PickedFile {
+export interface PickedFile {
   uri: string;
   name: string;
   mimeType?: string;
+  size?: number;
 }
 
 export async function extractTextFromFile(file: PickedFile): Promise<string> {
-  if (!file) return '';
+  if (!file?.uri) throw new Error('No file provided.');
+
+  const isPDF =
+    file.name.toLowerCase().endsWith('.pdf') ||
+    file.mimeType === 'application/pdf';
+
+  // ── Strategy A: TXT — read directly on device ────────────────────
+  if (!isPDF) {
+    try {
+      const content = await FileSystem.readAsStringAsync(file.uri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      if (!content?.trim()) throw new Error('File is empty.');
+      return content;
+    } catch (err: any) {
+      throw new Error(`Could not read text file: ${err.message}`);
+    }
+  }
+
+  // ── Strategy B: PDF — copy to cache then upload ───────────────────
+  let uploadUri = file.uri;
 
   try {
-    const formData = new FormData();
-    formData.append('file', {
-      uri:  file.uri,
-      name: file.name,
-      type: file.mimeType ?? (file.name.endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
-    } as any);
+    const dest = (FileSystem.cacheDirectory ?? '') + encodeURIComponent(file.name);
+    await FileSystem.copyAsync({ from: file.uri, to: dest });
+    uploadUri = dest;
+  } catch {
+    // Copy failed — try uploading the original URI anyway
+    uploadUri = file.uri;
+  }
 
-    const response = await api.post<{ text: string }>('/aichecker/extract', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 30000,
-    });
+  const formData = new FormData();
+  formData.append('file', {
+    uri:  uploadUri,
+    name: file.name,
+    type: 'application/pdf',
+  } as any);
 
-    return response.data.text ?? '';
+  try {
+    // Do NOT set Content-Type manually — axios sets it with the boundary
+    const response = await api.post<{ text: string }>(
+      '/aichecker/extract',
+      formData,
+      { timeout: 30000 }
+    );
+    const text = response.data?.text ?? '';
+    if (!text.trim()) throw new Error('PDF appears to be empty or image-only (scanned PDFs are not supported).');
+    return text;
   } catch (err: any) {
-    console.error('extractTextFromFile error:', err.response?.data ?? err.message);
-    const msg: string = err.response?.data?.message ?? err.message;
-    throw new Error(msg);
+    const serverMsg: string | undefined =
+      err.response?.data?.message ?? err.response?.data?.error;
+    const networkMsg = err.code === 'ECONNABORTED'
+      ? 'Request timed out. Make sure the backend is running.'
+      : err.message;
+    throw new Error(serverMsg ?? networkMsg);
   }
 }
