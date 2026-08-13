@@ -23,9 +23,9 @@ const TITLES: Record<string, string> = {
 
 function greeting(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
 }
 
 export default function TopNavbar({ onMenuPress }: TopNavbarProps) {
@@ -54,9 +54,10 @@ export default function TopNavbar({ onMenuPress }: TopNavbarProps) {
 
       <View style={styles.titleArea}>
         <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        {pathname === '/dashboard' && (
-          <Text style={styles.greeting}>Good {greeting()}, Lokesh</Text>
-        )}
+        {pathname === '/dashboard'
+          ? <Text style={styles.greeting}>{greeting()}, Mr. Lokesh</Text>
+          : <Text style={styles.greeting}>Faculty Portal · SVCE</Text>
+        }
       </View>
 
       <View style={styles.right}>
