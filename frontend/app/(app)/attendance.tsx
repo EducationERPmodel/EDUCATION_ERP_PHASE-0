@@ -268,7 +268,7 @@ export default function AttendanceScreen() {
               {students.map((student, idx) => (
                 <View
                   key={student.id}
-                  style={[styles.tableRow, idx % 2 === 0 && { backgroundColor: '#FAFAFA' }]}
+                  style={[styles.tableRow, idx % 2 === 0 && { backgroundColor: Colors.background }]}
                 >
                   <Text style={[styles.cell, { flex: 0.5, color: Colors.textMuted }]}>{idx + 1}</Text>
                   <Text style={[styles.cell, { flex: 1.8 }]} numberOfLines={1}>{student.usn}</Text>

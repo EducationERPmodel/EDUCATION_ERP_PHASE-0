@@ -42,7 +42,19 @@ app.get('/test-db', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  const { networkInterfaces } = require('os');
+  const nets = networkInterfaces();
+  const ips = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) ips.push(net.address);
+    }
+  }
   console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`📱 Mobile access:`);
+  ips.forEach(ip => console.log(`   http://${ip}:${PORT}`));
   console.log('Routes: /students /attendance /assignments /iamarks /dashboard /aichecker /achievements');
 });

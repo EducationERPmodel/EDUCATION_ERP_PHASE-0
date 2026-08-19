@@ -58,8 +58,8 @@ const JS_DAY: Record<number, DayKey> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu',
 const SUBJECT_COLORS: Record<string, string> = {
   'ADA':  Colors.primary,  'DBMS': Colors.warning,
   'DMS':  Colors.purple,   'MC':   Colors.success,
-  'BCE':  Colors.orange,   'GITS': '#15803D',
-  'UHV':  '#BE185D',       'PL':   Colors.secondary,
+  'BCE':  Colors.orange,   'GITS': Colors.success,
+  'UHV':  Colors.danger,  'PL':   Colors.secondary,
 };
 
 function subjectColor(s: string): string {

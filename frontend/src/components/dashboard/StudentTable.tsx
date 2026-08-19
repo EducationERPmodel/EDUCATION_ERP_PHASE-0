@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   heading:   { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 10 },
   tap:       { fontSize: 11, fontWeight: '400', color: Colors.textMuted },
   row:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  rowAlt:    { backgroundColor: '#FAFAFA' },
+  rowAlt:    { backgroundColor: Colors.background },
   headerRow: { backgroundColor: Colors.primaryLight, borderRadius: 8, borderBottomWidth: 0, paddingVertical: 10, marginBottom: 2 },
   cell:      { fontSize: 12, color: Colors.textPrimary, paddingHorizontal: 2 },
   headerCell:{ fontWeight: '700', color: Colors.primary, fontSize: 11 },

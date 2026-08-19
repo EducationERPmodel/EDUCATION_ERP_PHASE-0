@@ -93,13 +93,13 @@ type Tab = typeof TABS[number];
 const ACH_CATS: AchCategory[] = ['Certification', 'Hackathon', 'Event', 'Competition', 'Publication', 'Award', 'Other'];
 
 const ACH_META: Record<AchCategory, { icon: string; color: string }> = {
-  Certification: { icon: 'ribbon-outline',       color: '#2563EB' },
-  Hackathon:     { icon: 'code-slash-outline',    color: '#7C3AED' },
-  Event:         { icon: 'calendar-outline',      color: '#D97706' },
-  Competition:   { icon: 'trophy-outline',        color: '#EA580C' },
-  Publication:   { icon: 'document-text-outline', color: '#16A34A' },
-  Award:         { icon: 'star-outline',          color: '#DC2626' },
-  Other:         { icon: 'grid-outline',          color: '#64748B' },
+  Certification: { icon: 'ribbon-outline',       color: Colors.primary  },
+  Hackathon:     { icon: 'code-slash-outline',    color: Colors.purple   },
+  Event:         { icon: 'calendar-outline',      color: Colors.warning  },
+  Competition:   { icon: 'trophy-outline',        color: Colors.orange   },
+  Publication:   { icon: 'document-text-outline', color: Colors.success  },
+  Award:         { icon: 'star-outline',          color: Colors.danger   },
+  Other:         { icon: 'grid-outline',          color: Colors.secondary},
 };
 
 const EMPTY: AchForm = { category: 'Certification', title: '', issuer: '', date_achieved: '', description: '' };

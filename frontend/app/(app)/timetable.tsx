@@ -33,28 +33,28 @@ type DayKey = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
 const { width: SCREEN_W } = Dimensions.get('window');
 
 const SUBJECT_COLORS: Record<string, SubjectColor> = {
-  'ADA':     { bg: '#EFF6FF', text: '#2563EB', dot: '#2563EB' },
-  'MC':      { bg: '#F0FDF4', text: '#16A34A', dot: '#16A34A' },
-  'DBMS':    { bg: '#FEF3C7', text: '#D97706', dot: '#D97706' },
-  'DMS':     { bg: '#EDE9FE', text: '#7C3AED', dot: '#7C3AED' },
-  'BCE':     { bg: '#FED7AA', text: '#EA580C', dot: '#EA580C' },
-  'GITS':    { bg: '#DCFCE7', text: '#15803D', dot: '#15803D' },
-  'UHV':     { bg: '#FCE7F3', text: '#BE185D', dot: '#BE185D' },
-  'PL':      { bg: '#F1F5F9', text: '#475569', dot: '#475569' },
-  'ADA Lab': { bg: '#EFF6FF', text: '#2563EB', dot: '#2563EB' },
-  'CODSL':   { bg: '#F0FDF4', text: '#16A34A', dot: '#16A34A' },
-  'MCL':     { bg: '#F0FDF4', text: '#16A34A', dot: '#16A34A' },
-  'DBMSL':   { bg: '#FEF3C7', text: '#D97706', dot: '#D97706' },
-  'NSS/PT':  { bg: '#F8FAFC', text: '#94A3B8', dot: '#94A3B8' },
-  'CCA/ECA': { bg: '#F8FAFC', text: '#94A3B8', dot: '#94A3B8' },
-  'Skill/Counselling':              { bg: '#F1F5F9', text: '#64748B', dot: '#94A3B8' },
-  'Break':   { bg: '#F8FAFC', text: '#94A3B8', dot: '#94A3B8' },
-  'Lunch':   { bg: '#F8FAFC', text: '#94A3B8', dot: '#94A3B8' },
+  'ADA':     { bg: Colors.primaryLight,  text: Colors.primary,   dot: Colors.primary   },
+  'MC':      { bg: Colors.successLight,  text: Colors.success,   dot: Colors.success   },
+  'DBMS':    { bg: Colors.warningLight,  text: Colors.warning,   dot: Colors.warning   },
+  'DMS':     { bg: Colors.purpleLight,   text: Colors.purple,    dot: Colors.purple    },
+  'BCE':     { bg: Colors.orangeLight,   text: Colors.orange,    dot: Colors.orange    },
+  'GITS':    { bg: Colors.successLight,  text: Colors.success,   dot: Colors.success   },
+  'UHV':     { bg: Colors.dangerLight,   text: Colors.danger,    dot: Colors.danger    },
+  'PL':      { bg: Colors.background,    text: Colors.secondary, dot: Colors.secondary },
+  'ADA Lab': { bg: Colors.primaryLight,  text: Colors.primary,   dot: Colors.primary   },
+  'CODSL':   { bg: Colors.successLight,  text: Colors.success,   dot: Colors.success   },
+  'MCL':     { bg: Colors.successLight,  text: Colors.success,   dot: Colors.success   },
+  'DBMSL':   { bg: Colors.warningLight,  text: Colors.warning,   dot: Colors.warning   },
+  'NSS/PT':  { bg: Colors.background,    text: Colors.textMuted, dot: Colors.textMuted },
+  'CCA/ECA': { bg: Colors.background,    text: Colors.textMuted, dot: Colors.textMuted },
+  'Skill/Counselling': { bg: Colors.background, text: Colors.secondary, dot: Colors.textMuted },
+  'Break':   { bg: Colors.background,    text: Colors.textMuted, dot: Colors.textMuted },
+  'Lunch':   { bg: Colors.background,    text: Colors.textMuted, dot: Colors.textMuted },
 };
 
 function col(subject: string): SubjectColor {
   const key = Object.keys(SUBJECT_COLORS).find(k => subject.startsWith(k));
-  return key ? SUBJECT_COLORS[key] : { bg: '#F1F5F9', text: '#64748B', dot: '#94A3B8' };
+  return key ? SUBJECT_COLORS[key] : { bg: Colors.background, text: Colors.secondary, dot: Colors.textMuted };
 }
 
 const TIMETABLE: Record<DayKey, Period[]> = {
